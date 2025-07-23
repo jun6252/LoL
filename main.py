@@ -133,7 +133,7 @@ else:
     df.to_csv(SCORE_FILE, index=False)
 
     st.markdown("## 🏆 랭킹")
-    st.dataframe(df.head(10))
+    st.dataframe(df.head(20))
 
     if st.button("🔁 다시 시작"):
         for key in list(st.session_state.keys()):
