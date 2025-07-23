@@ -8,7 +8,32 @@ SCARY_IMAGES = [
     "743ce748-6b5f-4550-a89b-7f74e7b8bc0e.png",
     "88e49919-b319-44f5-86c2-cd4f0e7f5bc5.png",
     "4aacb2ee-8fe7-42fc-a032-52e53f1df59e.png",
-    "a0909e56-6f4a-45a1-9f7e-7924edd44acb.png",
+    "a0909e56-6f4a-45a1-9f7e-7924edd44acb.png",import streamlit as st
+import random
+
+st.set_page_config(page_title="랜덤 명언 생성기", page_icon="🧠", layout="centered")
+
+st.title("🧠 랜덤 명언 생성기")
+st.write("명언이 필요할 때마다 버튼을 눌러보세요!")
+
+quotes = [
+    ("삶이 있는 한 희망은 있다.", "키케로"),
+    ("행복은 습관이다. 그것을 몸에 지니라.", "허버드"),
+    ("성공은 열정을 잃지 않고 실패를 거듭할 수 있는 능력이다.", "윈스턴 처칠"),
+    ("과거에 연연하지 마라. 미래는 오늘부터 시작된다.", "존 F. 케네디"),
+    ("네가 할 수 있다고 믿든, 할 수 없다고 믿든, 믿는 대로 될 것이다.", "헨리 포드"),
+    ("지금 하는 일이 재미없다면, 인생도 재미없을 것이다.", "워런 버핏"),
+    ("인생은 자전거를 타는 것과 같다. 균형을 잡으려면 움직여야 한다.", "알베르트 아인슈타인"),
+    ("행동이 말보다 더 큰 목소리를 낸다.", "윌 로저스")
+]
+
+if st.button("✨ 명언 뽑기"):
+    quote, author = random.choice(quotes)
+    st.success(f"💬 *\"{quote}\"*\n\n— **{author}**")
+else:
+    st.info("⬆️ 위 버튼을 눌러 명언을 확인해보세요!")
+
+
     "b9de195c-2519-4d13-83ac-fafd59ca519a.png",
     "f7c67c74-02ef-49d3-8746-774e739f5c6e.png",
     "c10023fd-d27f-4573-96a7-75f1814ce398.png",
