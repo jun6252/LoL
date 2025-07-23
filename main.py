@@ -1,136 +1,54 @@
 import streamlit as st
 import random
-import time
+import re
 
-# 네가 업로드한 이미지 파일명 (15개)
-SCARY_IMAGES = [
-    "8b6a356c-fc12-44e3-afcf-ae7aecf5ca51.png",
-    "743ce748-6b5f-4550-a89b-7f74e7b8bc0e.png",
-    "88e49919-b319-44f5-86c2-cd4f0e7f5bc5.png",
-    "4aacb2ee-8fe7-42fc-a032-52e53f1df59e.png",
-    "a0909e56-6f4a-45a1-9f7e-7924edd44acb.png",import streamlit as st
-import random
+# 초성 추출 함수
+def get_initials(word):
+    CHOSUNG_LIST = [
+        'ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ',
+        'ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'
+    ]
+    initials = ""
+    for char in word:
+        if '가' <= char <= '힣':
+            code = ord(char) - ord('가')
+            cho = code // 588
+            initials += CHOSUNG_LIST[cho]
+        else:
+            initials += char
+    return initials
 
-st.set_page_config(page_title="랜덤 명언 생성기", page_icon="🧠", layout="centered")
-
-st.title("🧠 랜덤 명언 생성기")
-st.write("명언이 필요할 때마다 버튼을 눌러보세요!")
-
-quotes = [
-    ("삶이 있는 한 희망은 있다.", "키케로"),
-    ("행복은 습관이다. 그것을 몸에 지니라.", "허버드"),
-    ("성공은 열정을 잃지 않고 실패를 거듭할 수 있는 능력이다.", "윈스턴 처칠"),
-    ("과거에 연연하지 마라. 미래는 오늘부터 시작된다.", "존 F. 케네디"),
-    ("네가 할 수 있다고 믿든, 할 수 없다고 믿든, 믿는 대로 될 것이다.", "헨리 포드"),
-    ("지금 하는 일이 재미없다면, 인생도 재미없을 것이다.", "워런 버핏"),
-    ("인생은 자전거를 타는 것과 같다. 균형을 잡으려면 움직여야 한다.", "알베르트 아인슈타인"),
-    ("행동이 말보다 더 큰 목소리를 낸다.", "윌 로저스")
+# 단어 리스트
+WORDS = [
+    "사과", "학교", "컴퓨터", "자동차", "의자", "물고기",
+    "바나나", "선생님", "강아지", "치킨", "냉장고", "호랑이",
+    "공부", "연필", "핸드폰", "텔레비전", "고양이"
 ]
-
-if st.button("✨ 명언 뽑기"):
-    quote, author = random.choice(quotes)
-    st.success(f"💬 *\"{quote}\"*\n\n— **{author}**")
-else:
-    st.info("⬆️ 위 버튼을 눌러 명언을 확인해보세요!")
-
-
-    "b9de195c-2519-4d13-83ac-fafd59ca519a.png",
-    "f7c67c74-02ef-49d3-8746-774e739f5c6e.png",
-    "c10023fd-d27f-4573-96a7-75f1814ce398.png",
-    "52c9e878-2152-44ab-b96a-bf502b309aa2.png",
-    "6f2985cc-69b3-4a48-ac31-613628e3d4c2.png",
-    "4f27933e-c3dc-4637-8f7a-6ae0b0bc280e.png",
-    "b189585a-4d67-41e7-9052-ce77f93db120.png",
-    "bf2f8987-fd2b-4ebf-89ca-b9997b2d0e88.png",
-    "0de9e869-154c-48b0-8cb2-755681722df7.png",
-    "3ed983c9-72df-4d5c-a71c-84348b90d09b.png",
-]
-
-# 공포 효과음 mp3 (Pixabay 공개 음원)
-SCARY_SOUNDS = {
-    "귀신 속삭임": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_88b4f116d7.mp3?filename=scream-143121.mp3",
-    "기괴한 속삭임": "https://cdn.pixabay.com/download/audio/2022/11/07/audio_d0c87dc8b8.mp3?filename=whispering-ambient-124737.mp3",
-    "악몽 비명": "https://cdn.pixabay.com/download/audio/2023/03/06/audio_0d68b91a5b.mp3?filename=nightmare-scream-140172.mp3",
-    "공포 브레이크": "https://cdn.pixabay.com/download/audio/2022/03/01/audio_bfa2b13222.mp3?filename=horror-stinger-133129.mp3",
-    "지옥문 오픈": "https://cdn.pixabay.com/download/audio/2021/08/09/audio_84de31ec6c.mp3?filename=gate-of-hell-8825.mp3",
-    "비명과 속삭임": "https://cdn.pixabay.com/download/audio/2022/11/07/audio_3de50d4c82.mp3?filename=creepy-whisper-124739.mp3"
-}
 
 # 세션 초기화
-if "bridge" not in st.session_state:
-    st.session_state.bridge = [random.choice(["L", "R"]) for _ in range(15)]
-    st.session_state.current_step = 0
-    st.session_state.game_over = False
-    st.session_state.cleared = False
-    st.session_state.show_scare = False
-    st.session_state.scare_image = None
-    st.session_state.scare_sound = None
+if "word" not in st.session_state:
+    st.session_state.word = random.choice(WORDS)
+    st.session_state.solved = False
 
-# 리셋 함수
-def reset_game():
-    st.session_state.bridge = [random.choice(["L", "R"]) for _ in range(15)]
-    st.session_state.current_step = 0
-    st.session_state.game_over = False
-    st.session_state.cleared = False
-    st.session_state.show_scare = False
-    st.session_state.scare_image = None
-    st.session_state.scare_sound = None
+# UI
+st.title("🧠 초성 퀴즈 게임")
+st.markdown("초성을 보고 어떤 단어인지 맞혀보세요!")
 
-# 타이틀
-st.title("👻 징검다리 공포게임")
-st.markdown("왼쪽 / 오른쪽을 선택해 다리를 건너세요. 틀리면 무언가가 나옵니다...")
+if not st.session_state.solved:
+    initials = get_initials(st.session_state.word)
+    st.markdown(f"### 🔤 초성: **{initials}**")
 
-# 공포 화면 출력 모드
-if st.session_state.show_scare:
-    st.error("💀 틀렸습니다!")
-    st.image(f"/mnt/data/{st.session_state.scare_image}", caption="😱", use_container_width=True)
-    st.audio(st.session_state.scare_sound, autoplay=True)
-    st.caption("👁 효과음 재생 중...")
-    st.session_state.show_scare = False
-    time.sleep(3)
-    reset_game()
-    st.rerun()
+    answer = st.text_input("정답을 입력하세요:", key="answer_input")
 
-# 클리어
-elif st.session_state.cleared:
-    st.success("🎉 성공! 다 건넜습니다.")
-    if st.button("🔁 다시 시작"):
-        reset_game()
-        st.rerun()
-
-# 정상 진행
-else:
-    with st.expander("🛣️ 현재 진행 상황", expanded=True):
-        progress = []
-        for i in range(15):
-            if i < st.session_state.current_step:
-                progress.append("✅")
-            elif i == st.session_state.current_step:
-                progress.append("❓")
-            else:
-                progress.append("⬜")
-        st.markdown(" ".join(progress))
-
-    st.subheader(f"{st.session_state.current_step + 1}번째 칸 - 선택하세요:")
-    col1, col2 = st.columns(2)
-
-    def check(choice):
-        correct = st.session_state.bridge[st.session_state.current_step]
-        if choice == correct:
-            st.session_state.current_step += 1
-            if st.session_state.current_step == len(st.session_state.bridge):
-                st.session_state.cleared = True
+    if st.button("제출"):
+        if answer.strip() == st.session_state.word:
+            st.success("🎉 정답입니다!")
+            st.session_state.solved = True
         else:
-            st.session_state.game_over = True
-            st.session_state.show_scare = True
-            st.session_state.scare_image = random.choice(SCARY_IMAGES)
-            st.session_state.scare_sound = random.choice(list(SCARY_SOUNDS.values()))
-
-    with col1:
-        if st.button("⬅️ 왼쪽 (L)"):
-            check("L")
-            st.rerun()
-    with col2:
-        if st.button("➡️ 오른쪽 (R)"):
-            check("R")
-            st.rerun()
+            st.error("❌ 틀렸습니다. 다시 시도해보세요.")
+else:
+    st.markdown(f"정답은 **{st.session_state.word}** 였습니다.")
+    if st.button("🔄 다시 시작"):
+        st.session_state.word = random.choice(WORDS)
+        st.session_state.solved = False
+        st.experimental_rerun()
