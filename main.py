@@ -101,3 +101,5 @@ else:
     if st.session_state.current_step == len(st.session_state.bridge):
         st.session_state.cleared = True
         st.rerun()
+        img = Image.open(f"images/{image_file}")
+        
