@@ -1,9 +1,8 @@
 import streamlit as st
 import random
 import time
-from PIL import Image
 
-# 업로드한 이미지 파일명 (총 15장)
+# 네가 업로드한 이미지 파일명 (15개)
 SCARY_IMAGES = [
     "8b6a356c-fc12-44e3-afcf-ae7aecf5ca51.png",
     "743ce748-6b5f-4550-a89b-7f74e7b8bc0e.png",
@@ -22,7 +21,7 @@ SCARY_IMAGES = [
     "3ed983c9-72df-4d5c-a71c-84348b90d09b.png",
 ]
 
-# 공포 효과음 6종 (무료 음원)
+# 공포 효과음 mp3 (Pixabay 공개 음원)
 SCARY_SOUNDS = {
     "귀신 속삭임": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_88b4f116d7.mp3?filename=scream-143121.mp3",
     "기괴한 속삭임": "https://cdn.pixabay.com/download/audio/2022/11/07/audio_d0c87dc8b8.mp3?filename=whispering-ambient-124737.mp3",
@@ -32,74 +31,81 @@ SCARY_SOUNDS = {
     "비명과 속삭임": "https://cdn.pixabay.com/download/audio/2022/11/07/audio_3de50d4c82.mp3?filename=creepy-whisper-124739.mp3"
 }
 
-# 게임 초기화 함수
+# 세션 초기화
+if "bridge" not in st.session_state:
+    st.session_state.bridge = [random.choice(["L", "R"]) for _ in range(15)]
+    st.session_state.current_step = 0
+    st.session_state.game_over = False
+    st.session_state.cleared = False
+    st.session_state.show_scare = False
+    st.session_state.scare_image = None
+    st.session_state.scare_sound = None
+
+# 리셋 함수
 def reset_game():
     st.session_state.bridge = [random.choice(["L", "R"]) for _ in range(15)]
     st.session_state.current_step = 0
     st.session_state.game_over = False
     st.session_state.cleared = False
-
-# 세션 상태 초기화
-if "bridge" not in st.session_state:
-    reset_game()
+    st.session_state.show_scare = False
+    st.session_state.scare_image = None
+    st.session_state.scare_sound = None
 
 # 타이틀
-st.title("🩸 징검다리 공포게임 (15칸)")
-st.markdown("한 칸씩 선택해서 끝까지 가세요. 틀리면 무언가가... 나옵니다 👁️‍🗨️")
+st.title("👻 징검다리 공포게임")
+st.markdown("왼쪽 / 오른쪽을 선택해 다리를 건너세요. 틀리면 무언가가 나옵니다...")
 
-# 진행 시각화
-with st.expander("🛣️ 현재 진행 상황", expanded=True):
-    progress = [
-        "✅" if i < st.session_state.current_step else
-        "❓" if i == st.session_state.current_step and not st.session_state.game_over else "⬜"
-        for i in range(15)
-    ]
-    st.markdown(" ".join(progress))
-
-# 실패 처리
-if st.session_state.game_over:
-    st.error("💀 틀렸습니다! 무언가가 당신을 바라봅니다...")
-
-    image_file = random.choice(SCARY_IMAGES)
-    sound_label, sound_url = random.choice(list(SCARY_SOUNDS.items()))
-
-    img = Image.open(f"/mnt/data/{image_file}")
-    st.image(img, caption="😱", use_container_width=True)
-    st.audio(sound_url, format="audio/mp3", autoplay=True)
-    st.caption(f"🔊 효과음: {sound_label}")
-
+# 공포 화면 출력 모드
+if st.session_state.show_scare:
+    st.error("💀 틀렸습니다!")
+    st.image(f"/mnt/data/{st.session_state.scare_image}", caption="😱", use_container_width=True)
+    st.audio(st.session_state.scare_sound, autoplay=True)
+    st.caption("👁 효과음 재생 중...")
+    st.session_state.show_scare = False
     time.sleep(3)
     reset_game()
     st.rerun()
 
-# 클리어 처리
+# 클리어
 elif st.session_state.cleared:
-    st.success("🎉 성공! 당신은 징검다리를 무사히 건넜습니다.")
+    st.success("🎉 성공! 다 건넜습니다.")
     if st.button("🔁 다시 시작"):
         reset_game()
         st.rerun()
 
-# 진행 중
+# 정상 진행
 else:
+    with st.expander("🛣️ 현재 진행 상황", expanded=True):
+        progress = []
+        for i in range(15):
+            if i < st.session_state.current_step:
+                progress.append("✅")
+            elif i == st.session_state.current_step:
+                progress.append("❓")
+            else:
+                progress.append("⬜")
+        st.markdown(" ".join(progress))
+
     st.subheader(f"{st.session_state.current_step + 1}번째 칸 - 선택하세요:")
     col1, col2 = st.columns(2)
 
+    def check(choice):
+        correct = st.session_state.bridge[st.session_state.current_step]
+        if choice == correct:
+            st.session_state.current_step += 1
+            if st.session_state.current_step == len(st.session_state.bridge):
+                st.session_state.cleared = True
+        else:
+            st.session_state.game_over = True
+            st.session_state.show_scare = True
+            st.session_state.scare_image = random.choice(SCARY_IMAGES)
+            st.session_state.scare_sound = random.choice(list(SCARY_SOUNDS.values()))
+
     with col1:
         if st.button("⬅️ 왼쪽 (L)"):
-            if st.session_state.bridge[st.session_state.current_step] == "L":
-                st.session_state.current_step += 1
-            else:
-                st.session_state.game_over = True
-
+            check("L")
+            st.rerun()
     with col2:
         if st.button("➡️ 오른쪽 (R)"):
-            if st.session_state.bridge[st.session_state.current_step] == "R":
-                st.session_state.current_step += 1
-            else:
-                st.session_state.game_over = True
-
-    if st.session_state.current_step == len(st.session_state.bridge):
-        st.session_state.cleared = True
-        st.rerun()
-        img = Image.open(f"images/{image_file}")
-        
+            check("R")
+            st.rerun()
