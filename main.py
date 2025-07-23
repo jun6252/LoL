@@ -61,7 +61,7 @@ if not st.session_state.started:
             st.session_state.problem_start_time = time.time()
             st.session_state.show_hint = False
             st.session_state.started = True
-            st.experimental_rerun()
+            st.rerun()
 
 # 게임 진행
 elif not st.session_state.game_over:
@@ -71,7 +71,7 @@ elif not st.session_state.game_over:
 
     if remaining <= 0:
         st.session_state.game_over = True
-        st.experimental_rerun()
+        st.rerun()
 
     color = "green" if remaining > 30 else "orange" if remaining > 15 else "red"
     st.markdown(f"<h4 style='color:{color}'>⏱ 남은 시간: {remaining}초</h4>", unsafe_allow_html=True)
@@ -104,7 +104,7 @@ elif not st.session_state.game_over:
         st.session_state.current_word, st.session_state.hint = st.session_state.word_list.pop()
         st.session_state.problem_start_time = time.time()
         st.session_state.show_hint = False
-        st.experimental_rerun()
+        st.rerun()
 
     if col2.button("패스"):
         if not st.session_state.word_list:
@@ -114,7 +114,7 @@ elif not st.session_state.game_over:
         st.session_state.current_word, st.session_state.hint = st.session_state.word_list.pop()
         st.session_state.problem_start_time = time.time()
         st.session_state.show_hint = False
-        st.experimental_rerun()
+        st.rerun()
 
 # 게임 종료
 else:
@@ -138,4 +138,4 @@ else:
     if st.button("🔁 다시 시작"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
-        st.experimental_rerun()
+        st.rerun()
