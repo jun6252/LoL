@@ -1,6 +1,11 @@
 import streamlit as st
 import random
 import time
+import pandas as pd
+import os
+
+# CSV 파일 이름
+SCORE_FILE = "scores.csv"
 
 # 초성 추출 함수
 def get_initials(word):
@@ -18,86 +23,124 @@ def get_initials(word):
             initials += char
     return initials
 
-# 주제별 단어와 힌트
-WORDS = {
-    "줄임말": [
-        ("피셜", "자기 'Official' 주장이라는 뜻"),
-        ("갑분싸", "갑자기 분위기 싸해짐"),
-        ("TMI", "너무 많은 정보"),
-        ("OOTD", "오늘의 옷차림"),
-        ("JMT", "정말 맛있다")
-    ],
-    "속담": [
-        ("등잔 밑이 어둡다", "가까운 곳의 사정을 오히려 모른다"),
-        ("가는 말이 고와야 오는 말이 곱다", "상대에게 예의를 지켜야 한다"),
-        ("호랑이도 제 말하면 온다", "누구 이야기하면 나타난다"),
-        ("하늘의 별 따기", "매우 어렵다"),
-        ("백문이 불여일견", "백 번 듣는 것보다 한 번 보는 게 낫다")
-    ],
-    "일상생활": [
-        ("냉장고", "음식을 시원하게 보관하는 가전"),
-        ("치약", "이를 닦을 때 쓰는 것"),
-        ("지하철", "도심 대중교통 수단"),
-        ("물병", "물을 담는 용기"),
-        ("전화기", "멀리 있는 사람과 통화")
-    ]
-}
+# 단어 + 힌트 (모든 주제 섞기)
+WORDS = [
+    ("피셜", "자기 주장 (Official)"),
+    ("갑분싸", "갑자기 분위기 싸해짐"),
+    ("TMI", "너무 많은 정보"),
+    ("OOTD", "오늘의 옷차림"),
+    ("JMT", "정말 맛있다"),
+    ("등잔 밑이 어둡다", "가까운 곳일수록 모른다"),
+    ("가는 말이 고와야 오는 말이 곱다", "상대에게 예의 지켜야"),
+    ("호랑이도 제 말하면 온다", "누구 이야기하면 나타난다"),
+    ("하늘의 별 따기", "매우 어려운 일"),
+    ("백문이 불여일견", "백 번 듣는 것보다 보기"),
+    ("냉장고", "음식 보관 가전"),
+    ("치약", "이를 닦을 때 씀"),
+    ("지하철", "도심 대중교통"),
+    ("물병", "물을 담는 용기"),
+    ("전화기", "통화하는 기기")
+]
 
 # 세션 초기화
-if "category" not in st.session_state:
-    st.session_state.category = None
-    st.session_state.word = None
-    st.session_state.hint = None
+if "started" not in st.session_state:
+    st.session_state.started = False
+    st.session_state.name = ""
+    st.session_state.word_list = []
+    st.session_state.current_word = None
+    st.session_state.hint = ""
     st.session_state.start_time = None
-    st.session_state.solved = False
+    st.session_state.score = 0
+    st.session_state.problem_start_time = None
     st.session_state.show_hint = False
+    st.session_state.game_over = False
 
-# 게임 시작 또는 카테고리 선택
-if not st.session_state.category:
-    st.title("🧠 초성 퀴즈 게임")
-    st.subheader("주제를 선택하세요!")
-    category = st.selectbox("주제", list(WORDS.keys()))
-    if st.button("게임 시작"):
-        st.session_state.category = category
-        st.session_state.word, st.session_state.hint = random.choice(WORDS[category])
+# 게임 시작 전
+if not st.session_state.started:
+    st.title("⚡ 스피드 초성 퀴즈")
+    st.markdown("20초 안에 최대한 많이 맞혀보세요!")
+
+    name = st.text_input("당신의 이름을 입력하세요:")
+    if st.button("게임 시작!") and name.strip():
+        st.session_state.name = name.strip()
+        st.session_state.word_list = WORDS.copy()
+        random.shuffle(st.session_state.word_list)
+        st.session_state.current_word, st.session_state.hint = st.session_state.word_list.pop()
         st.session_state.start_time = time.time()
-        st.session_state.solved = False
+        st.session_state.problem_start_time = time.time()
+        st.session_state.score = 0
         st.session_state.show_hint = False
+        st.session_state.started = True
+        st.rerun()
+    elif st.button("게임 시작!") and not name.strip():
+        st.warning("이름을 입력하세요.")
+
+# 게임 진행 중
+elif not st.session_state.game_over:
+    now = time.time()
+    elapsed = now - st.session_state.start_time
+    remaining = 20 - elapsed
+
+    if remaining <= 0:
+        st.session_state.game_over = True
         st.rerun()
 
-else:
-    st.title(f"🧠 [{st.session_state.category}] 초성 퀴즈")
-    initials = get_initials(st.session_state.word)
+    st.title("🔥 스피드 퀴즈 중!")
+    st.markdown(f"⏱️ 남은 시간: **{int(remaining)}초**")
+    st.markdown(f"🏆 현재 점수: **{st.session_state.score}개**")
+
+    initials = get_initials(st.session_state.current_word)
     st.markdown(f"### 🔤 초성: **{initials}**")
 
-    # 시간 경과 체크
-    if not st.session_state.solved:
-        elapsed = time.time() - st.session_state.start_time
-        if elapsed >= 10 and not st.session_state.show_hint:
-            st.session_state.show_hint = True
-            st.warning("⌛ 시간이 초과되었습니다! 힌트를 드릴게요.")
+    if not st.session_state.show_hint and now - st.session_state.problem_start_time >= 5:
+        st.session_state.show_hint = True
 
     if st.session_state.show_hint:
         st.info(f"💡 힌트: {st.session_state.hint}")
 
-    answer = st.text_input("정답을 입력하세요:")
+    answer = st.text_input("정답:", key=str(now))
 
-    if st.button("제출") and not st.session_state.solved:
-        if answer.strip() == st.session_state.word:
-            st.success("🎉 정답입니다!")
-            st.session_state.solved = True
+    if st.button("제출"):
+        if answer.strip() == st.session_state.current_word:
+            st.success("🎉 정답!")
+            st.session_state.score += 1
         else:
-            st.error("❌ 틀렸습니다. 다시 시도해보세요.")
+            st.warning("❌ 틀렸지만 넘어갑니다!")
 
-    if st.session_state.solved:
-        if st.button("🔄 다음 문제"):
-            st.session_state.word, st.session_state.hint = random.choice(WORDS[st.session_state.category])
-            st.session_state.solved = False
-            st.session_state.show_hint = False
-            st.session_state.start_time = time.time()
-            st.rerun()
+        if not st.session_state.word_list:
+            st.session_state.word_list = WORDS.copy()
+            random.shuffle(st.session_state.word_list)
 
-    if st.button("🏠 주제로 돌아가기"):
+        st.session_state.current_word, st.session_state.hint = st.session_state.word_list.pop()
+        st.session_state.problem_start_time = time.time()
+        st.session_state.show_hint = False
+        st.rerun()
+
+# 게임 종료 후
+else:
+    st.title("🏁 게임 종료!")
+    st.markdown(f"👏 **{st.session_state.name}님**, 점수는 **{st.session_state.score}점** 입니다!")
+
+    # 점수 저장
+    new_data = pd.DataFrame([{
+        "이름": st.session_state.name,
+        "점수": st.session_state.score
+    }])
+
+    if os.path.exists(SCORE_FILE):
+        old_data = pd.read_csv(SCORE_FILE)
+        df = pd.concat([old_data, new_data], ignore_index=True)
+    else:
+        df = new_data
+
+    df = df.sort_values(by="점수", ascending=False).reset_index(drop=True)
+    df.to_csv(SCORE_FILE, index=False)
+
+    # 랭킹표 출력
+    st.markdown("## 🏆 전체 랭킹")
+    st.dataframe(df.head(10))
+
+    if st.button("🔄 다시 하기"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
