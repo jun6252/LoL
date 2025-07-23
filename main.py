@@ -6,7 +6,7 @@ import os
 
 SCORE_FILE = "scores.csv"
 
-# 초성 추출 함수
+# 초성 추출 함수 (한글만 처리)
 def get_initials(word):
     CHOSUNG_LIST = [
         'ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ',
@@ -19,33 +19,37 @@ def get_initials(word):
             cho = code // 588
             initials += CHOSUNG_LIST[cho]
         else:
-            initials += char
+            initials += char  # 영어면 그대로
     return initials
 
-# 제시어 100개 (실제 단어 + 예시)
+# 한국어 + 영어 문제 100개 예시 (일부 영어 UI 표시용)
 WORDS = [
-    ("냉장고", "음식 보관 가전"), ("지하철", "도심 대중교통"), ("강아지", "멍멍"),
-    ("치약", "이를 닦는 물건"), ("전화기", "통화 기기"), ("의자", "앉는 가구"),
-    ("치킨", "닭으로 만든 인기 음식"), ("컴퓨터", "코딩이나 문서 작성에 사용"),
-    ("연필", "글씨 쓰는 도구"), ("책상", "공부나 업무할 때 사용하는 가구"),
-    ("호랑이도 제 말하면 온다", "누구 이야기하면 나타난다"), ("하늘의 별 따기", "아주 어려운 일"),
-    ("가는 말이 고와야 오는 말이 곱다", "예의가 중요하다"), ("백문이 불여일견", "백 번 듣는 것보다 보기"),
-    ("등잔 밑이 어둡다", "가까운 것을 오히려 모른다"), ("피셜", "자기 공식 주장"), ("JMT", "정말 맛있다"),
-    ("TMI", "너무 많은 정보"), ("ASAP", "되도록 빨리"), ("LOL", "크게 웃음"),
-    ("OOTD", "오늘의 패션"), ("DM", "SNS 메시지"), ("MBTI", "성격유형 검사"),
-    ("버스", "정류장에 정차하는 교통수단"), ("수박", "여름철 과일"), ("감자", "전으로도 먹는 뿌리채소"),
-    ("코끼리", "큰 귀와 코를 가진 동물"), ("하마", "물가에 사는 무거운 동물"),
-    ("과자", "과식하면 배아픈 군것질"), ("소파", "거실 가구"), ("리모컨", "TV 조작 기기"),
-    ("가방", "물건을 담는 것"), ("비행기", "하늘을 나는 교통수단"),
-    ("자동차", "도로 위 대표 운송수단"), ("피아노", "건반 악기"), ("기타", "줄 악기"),
-    ("학교", "학생들이 공부하는 곳"), ("선생님", "가르치는 사람"), ("물고기", "물 속에 사는 생물"),
-    ("태풍", "거센 바람을 동반한 기상 현상"), ("도서관", "책을 읽고 빌릴 수 있는 장소"),
-    ("달력", "날짜 확인하는 도구"), ("병원", "아픈 사람 가는 곳"),
-    ("시계", "시간을 알려주는 것"), ("모자", "머리에 쓰는 것"), ("우산", "비 올 때 필요"),
-    ("편의점", "24시간 여는 가게"), ("헬스장", "운동하는 곳"), ("카페", "커피 마시는 곳"),
-    ("노트북", "휴대 가능한 컴퓨터"), ("빵", "밀가루로 만든 주식"),
+    # 한국어 제시어
+    ("냉장고", "음식을 차갑게 보관하는 전자제품"),
+    ("지하철", "도심 속 대중교통"),
+    ("치약", "이를 닦는 데 사용하는 것"),
+    ("강아지", "멍멍 짖는 동물"),
+    ("컴퓨터", "프로그래밍과 문서 작업 기기"),
+    ("등잔 밑이 어둡다", "가까운 것을 오히려 모른다"),
+    ("호랑이도 제 말하면 온다", "누구 이야기하면 나타난다"),
+    ("하늘의 별 따기", "아주 어려운 일"),
+    ("백문이 불여일견", "직접 보는 게 더 낫다"),
+    ("가는 말이 고와야 오는 말이 곱다", "예의는 서로 지켜야 한다"),
+
+    # 영어 제시어 (UI 영어)
+    ("TMI", "Too much information"),
+    ("LOL", "Laugh out loud"),
+    ("ASAP", "As soon as possible"),
+    ("FYI", "For your information"),
+    ("DIY", "Do it yourself"),
+    ("BRB", "Be right back"),
+    ("OOTD", "Outfit of the day"),
+    ("IDK", "I don't know"),
+    ("JMT", "Jot Mas Ta (Korean slang for delicious)"),
+    ("MBTI", "Myers-Briggs Type Indicator"),
 ] + [
-    (f"단어{i}", f"{i}번째 가상의 단어 설명") for i in range(51, 101)
+    (f"Word{i}", f"Hint for Word {i}") if i % 2 == 0 else (f"단어{i}", f"{i}번째 가상의 단어 설명")
+    for i in range(21, 101)
 ]
 
 # 세션 초기화
@@ -63,14 +67,13 @@ if "started" not in st.session_state:
 
 # 시작 화면
 if not st.session_state.started:
-    st.title("초성 맞추기 테스트 ")
-    st.markdown("**30초 안에 최대한 많이 맞혀보세요!**")
+    st.title("⚡ Speed Initial Quiz (초성 스피드 퀴즈)")
+    st.markdown("🕒 30초 안에 최대한 많은 단어를 맞혀보세요!")
 
-    name = st.text_input("이름을 입력하세요:")
-
-    if st.button("게임 시작!"):
+    name = st.text_input("이름 / Name:")
+    if st.button("게임 시작 / Start"):
         if not name.strip():
-            st.warning("이름을 입력해주세요.")
+            st.warning("이름을 입력하세요 / Please enter your name.")
         else:
             st.session_state.name = name.strip()
             st.session_state.word_list = WORDS.copy()
@@ -83,11 +86,10 @@ if not st.session_state.started:
             st.session_state.started = True
             st.rerun()
 
-# 게임 진행 화면
+# 게임 진행
 elif not st.session_state.game_over:
-    st.title("🔥 스피드 퀴즈 중!")
+    st.title("🔥 문제 풀이 중... / Solving...")
 
-    timer_placeholder = st.empty()
     now = time.time()
     elapsed = now - st.session_state.start_time
     remaining = 30 - elapsed
@@ -96,26 +98,42 @@ elif not st.session_state.game_over:
         st.session_state.game_over = True
         st.rerun()
 
-    timer_placeholder.markdown(f"⏱️ 남은 시간: **{int(remaining)}초**")
-    st.markdown(f"🏆 현재 점수: **{st.session_state.score}개**")
+    st.markdown(f"⏱️ 남은 시간 / Time left: **{int(remaining)}초**")
+    st.markdown(f"✅ 점수 / Score: **{st.session_state.score}개**")
 
-    initials = get_initials(st.session_state.current_word)
-    st.markdown(f"### 🔤 초성: **{initials}**")
+    word = st.session_state.current_word
+    hint = st.session_state.hint
 
+    # UI 언어 구분
+    is_korean = all('가' <= ch <= '힣' or ch.isspace() for ch in word)
+
+    # 문제 표시
+    initials = get_initials(word)
+    if is_korean:
+        st.markdown(f"### 🔤 초성: **{initials}**")
+    else:
+        st.markdown(f"### 🔡 Initials: **{initials}**")
+
+    # 힌트 표시 (3초 경과 후)
     if not st.session_state.show_hint and now - st.session_state.problem_start_time >= 3:
         st.session_state.show_hint = True
 
     if st.session_state.show_hint:
-        st.info(f"💡 힌트: {st.session_state.hint}")
+        if is_korean:
+            st.info(f"💡 힌트: {hint}")
+        else:
+            st.info(f"💡 Hint: {hint}")
 
-    answer = st.text_input("정답:", key=str(now))
+    # 정답 입력
+    answer = st.text_input("정답 입력 / Enter answer:", key=str(now))
 
-    if st.button("제출"):
-        if answer.strip() == st.session_state.current_word:
-            st.success("🎉 정답!")
+    col1, col2 = st.columns(2)
+    if col1.button("제출 / Submit"):
+        if answer.strip().lower() == word.lower():
+            st.success("🎉 정답입니다! / Correct!")
             st.session_state.score += 1
         else:
-            st.warning("❌ 틀렸지만 다음 문제로!")
+            st.warning("❌ 틀렸습니다! 다음 문제로 넘어갑니다. / Wrong! Moving on.")
 
         if not st.session_state.word_list:
             st.session_state.word_list = WORDS.copy()
@@ -126,9 +144,15 @@ elif not st.session_state.game_over:
         st.session_state.show_hint = False
         st.rerun()
 
-# 게임 종료 화면
+    if col2.button("패스 / Pass"):
+        st.session_state.current_word, st.session_state.hint = st.session_state.word_list.pop()
+        st.session_state.problem_start_time = time.time()
+        st.session_state.show_hint = False
+        st.rerun()
+
+# 게임 종료
 else:
-    st.title("🏁 게임 종료!")
+    st.title("🏁 게임 종료 / Game Over")
     st.markdown(f"🎯 **{st.session_state.name}** 님의 점수는 **{st.session_state.score}점**입니다!")
 
     # 점수 저장
@@ -146,10 +170,10 @@ else:
     df = df.sort_values(by="점수", ascending=False).reset_index(drop=True)
     df.to_csv(SCORE_FILE, index=False)
 
-    st.markdown("## 🏆 전체 랭킹")
+    st.markdown("## 🏆 랭킹 / Ranking")
     st.dataframe(df.head(10))
 
-    if st.button("🔄 다시 하기"):
+    if st.button("🔄 다시 하기 / Restart"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
