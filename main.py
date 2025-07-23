@@ -19,7 +19,7 @@ def get_initials(word):
             result += char
     return result
 
-# 제시어 리스트 (예시 일부)
+# 제시어 리스트
 WORDS = [
     ("냉장고", "음식을 차갑게 보관하는 기기"), ("치약", "이를 닦는 데 쓰는 물건"),
     ("지하철", "도시 대중교통"), ("우산", "비 올 때 쓰는 물건"),
@@ -42,10 +42,9 @@ if "started" not in st.session_state:
     st.session_state.start_time = 0.0
     st.session_state.problem_start_time = 0.0
     st.session_state.show_hint = False
-    st.session_state.answer_input = ""
     st.session_state.game_over = False
 
-# 게임 시작 전
+# 시작 화면
 if not st.session_state.started:
     st.title("⚡ 초성 스피드 퀴즈")
     name = st.text_input("이름을 입력하세요:")
@@ -60,12 +59,11 @@ if not st.session_state.started:
             st.session_state.score = 0
             st.session_state.start_time = time.time()
             st.session_state.problem_start_time = time.time()
-            st.session_state.answer_input = ""
             st.session_state.show_hint = False
             st.session_state.started = True
-            st.rerun()
+            st.experimental_rerun()
 
-# 게임 진행 중
+# 게임 진행
 elif not st.session_state.game_over:
     now = time.time()
     elapsed = now - st.session_state.start_time
@@ -73,9 +71,8 @@ elif not st.session_state.game_over:
 
     if remaining <= 0:
         st.session_state.game_over = True
-        st.rerun()
+        st.experimental_rerun()
 
-    # 색상 처리
     color = "green" if remaining > 30 else "orange" if remaining > 15 else "red"
     st.markdown(f"<h4 style='color:{color}'>⏱ 남은 시간: {remaining}초</h4>", unsafe_allow_html=True)
     st.markdown(f"🏆 현재 점수: **{st.session_state.score}개**")
@@ -83,11 +80,10 @@ elif not st.session_state.game_over:
     initials = get_initials(st.session_state.current_word)
     st.markdown(f"### 🔤 초성: **{initials}**")
 
-    # 힌트 처리
     if not st.session_state.show_hint and now - st.session_state.problem_start_time >= 3:
         st.session_state.show_hint = True
 
-    answer = st.text_input("정답 입력:", value=st.session_state.answer_input, key="answer_input")
+    answer = st.text_input("정답 입력:", key="answer")
 
     if st.session_state.show_hint:
         st.markdown(f"<div style='color:gray; margin-top:-10px;'>💡 힌트: {st.session_state.hint}</div>", unsafe_allow_html=True)
@@ -101,34 +97,33 @@ elif not st.session_state.game_over:
         else:
             st.warning("❌ 오답입니다. 다음 문제로 넘어갑니다.")
 
-        st.session_state.answer_input = ""
         if not st.session_state.word_list:
             st.session_state.word_list = WORDS.copy()
             random.shuffle(st.session_state.word_list)
+
         st.session_state.current_word, st.session_state.hint = st.session_state.word_list.pop()
         st.session_state.problem_start_time = time.time()
         st.session_state.show_hint = False
-        st.rerun()
+        st.experimental_rerun()
 
     if col2.button("패스"):
-        st.session_state.answer_input = ""
         if not st.session_state.word_list:
             st.session_state.word_list = WORDS.copy()
             random.shuffle(st.session_state.word_list)
+
         st.session_state.current_word, st.session_state.hint = st.session_state.word_list.pop()
         st.session_state.problem_start_time = time.time()
         st.session_state.show_hint = False
-        st.rerun()
+        st.experimental_rerun()
 
 # 게임 종료
 else:
     st.title("🏁 게임 종료!")
     st.markdown(f"**{st.session_state.name}**님의 점수는 **{st.session_state.score}점**입니다.")
 
-    # 랭킹 파일 처리
     if os.path.exists(SCORE_FILE):
         df = pd.read_csv(SCORE_FILE)
-        df = df[df["이름"] != st.session_state.name]  # 중복 제거
+        df = df[df["이름"] != st.session_state.name]
     else:
         df = pd.DataFrame(columns=["이름", "점수"])
 
@@ -143,4 +138,4 @@ else:
     if st.button("🔁 다시 시작"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
-        st.rerun()
+        st.experimental_rerun()
