@@ -1,85 +1,84 @@
 import streamlit as st
 import random
+from PIL import Image
 import time
 
-# 🔊 효과음 재생
-def play_success():
-    st.markdown(
-        """
-        <audio autoplay>
-        <source src="https://actions.google.com/sounds/v1/cartoon/concussive_drum_hit.ogg" type="audio/ogg">
-        </audio>
-        """,
-        unsafe_allow_html=True,
-    )
+# 설정
+st.set_page_config(page_title="징검다리 공포게임", layout="centered")
 
-def play_fail():
-    st.markdown(
-        """
-        <audio autoplay>
-        <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
-        </audio>
-        """,
-        unsafe_allow_html=True,
-    )
-
-# 🎯 난이도 설정
-difficulty_levels = {
-    "쉬움": 10,
-    "보통": 5,
-    "어려움": 2.5,
-}
-
-# 🧠 세션 상태 초기화
-if "stairs" not in st.session_state:
-    st.session_state.stairs = []
-    st.session_state.position = 0
-    st.session_state.last_foot = None
+# 게임 초기화 함수
+def reset_game():
+    st.session_state.bridge = [random.choice(["L", "R"]) for _ in range(15)]
+    st.session_state.current_step = 0
     st.session_state.game_over = False
-    st.session_state.start_time = None
-    st.session_state.limit = None
+    st.session_state.cleared = False
 
-# 🎮 난이도 선택
-difficulty = st.selectbox("난이도를 선택하세요", list(difficulty_levels.keys()))
+# 초기화
+if "bridge" not in st.session_state:
+    reset_game()
 
-# 🧱 계단 생성
-def generate_stairs(n=30):
-    st.session_state.stairs = [random.choice(["L", "R"]) for _ in range(n)]
+# 제목
+st.title("🦑 징검다리 공포게임")
+st.markdown("15개의 칸을 건너세요. 실패하면... 무언가가 나타납니다 😱")
 
-# ▶ 게임 시작
-if st.button("게임 시작", type="primary"):
-    generate_stairs()
-    st.session_state.position = 0
-    st.session_state.last_foot = None
-    st.session_state.game_over = False
-    st.session_state.start_time = time.time()
-    st.session_state.limit = difficulty_levels[difficulty]
-
-# ⏱️ 시간 초과 체크
-if st.session_state.start_time and not st.session_state.game_over:
-    elapsed = time.time() - st.session_state.start_time
-    if elapsed > st.session_state.limit:
-        st.session_state.game_over = True
-        play_fail()
-        st.warning(f"⏱️ 시간 초과! {st.session_state.limit}초 초과됨")
-
-# 🪜 계단 그리기
-st.markdown("### 🪜 무한의 계단")
-if st.session_state.stairs:
-    for i in range(len(st.session_state.stairs)-1, -1, -1):
-        if i == st.session_state.position:
-            st.markdown(f"🧍‍♂️ **[{i+1}] {st.session_state.stairs[i]}**")
+# 진행 상황 시각화
+with st.expander("현재 징검다리 진행 상황", expanded=True):
+    bridge_display = []
+    for i in range(len(st.session_state.bridge)):
+        if i < st.session_state.current_step:
+            bridge_display.append("✅")
+        elif i == st.session_state.current_step and not st.session_state.game_over:
+            bridge_display.append("❓")
         else:
-            st.markdown(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[{i+1}] {st.session_state.stairs[i]}")
+            bridge_display.append("⬜")
+    st.markdown(" ".join(bridge_display))
 
-# 👣 왼발/오른발 버튼
-if not st.session_state.game_over and st.session_state.stairs:
+# 실패 처리
+if st.session_state.game_over:
+    st.error("💀 틀렸습니다... 게임 오버!")
+
+    # 무서운 사진 + 효과음
+    image = Image.open("ghost.jpg")
+    st.image(image, caption="으아악!!!", use_column_width=True)
+    st.audio("scream.mp3", autoplay=True)
+
+    # 잠깐 멈췄다가 자동 초기화
+    time.sleep(3)
+    st.warning("게임이 초기화됩니다...")
+    time.sleep(1)
+    reset_game()
+    st.experimental_rerun()
+
+# 클리어 처리
+elif st.session_state.cleared:
+    st.success("🎉 축하합니다! 다리를 모두 건넜습니다!")
+    if st.button("🔁 다시 시작"):
+        reset_game()
+        st.experimental_rerun()
+
+# 진행 중
+else:
+    st.subheader(f"{st.session_state.current_step + 1}번째 칸 - 선택하세요:")
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("왼발"):
-            if st.session_state.last_foot == 'L':
+        if st.button("⬅️ 왼쪽 (L)"):
+            choice = "L"
+            answer = st.session_state.bridge[st.session_state.current_step]
+            if choice == answer:
+                st.session_state.current_step += 1
+            else:
                 st.session_state.game_over = True
-                play_fail()
-            elif st.session_state.stairs[st.session_state.position] == 'L':
-                st.session_state.position += 1
-                st.sessio
+
+    with col2:
+        if st.button("➡️ 오른쪽 (R)"):
+            choice = "R"
+            answer = st.session_state.bridge[st.session_state.current_step]
+            if choice == answer:
+                st.session_state.current_step += 1
+            else:
+                st.session_state.game_over = True
+
+    # 클리어 체크
+    if st.session_state.current_step == len(st.session_state.bridge):
+        st.session_state.cleared = True
+        st.experimental_rerun()
