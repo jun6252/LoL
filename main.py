@@ -22,7 +22,7 @@ def get_initials(word):
             initials += char
     return initials
 
-# 제시어 100개 예시 (줄임말 + 속담 + 일상 + 기타)
+# 제시어 100개 (실제 단어 + 예시)
 WORDS = [
     ("냉장고", "음식 보관 가전"), ("지하철", "도심 대중교통"), ("강아지", "멍멍"),
     ("치약", "이를 닦는 물건"), ("전화기", "통화 기기"), ("의자", "앉는 가구"),
@@ -44,7 +44,6 @@ WORDS = [
     ("시계", "시간을 알려주는 것"), ("모자", "머리에 쓰는 것"), ("우산", "비 올 때 필요"),
     ("편의점", "24시간 여는 가게"), ("헬스장", "운동하는 곳"), ("카페", "커피 마시는 곳"),
     ("노트북", "휴대 가능한 컴퓨터"), ("빵", "밀가루로 만든 주식"),
-    # 50개 추가 (복붙이나 자동 생성한 유사 항목들)
 ] + [
     (f"단어{i}", f"{i}번째 가상의 단어 설명") for i in range(51, 101)
 ]
@@ -64,25 +63,27 @@ if "started" not in st.session_state:
 
 # 시작 화면
 if not st.session_state.started:
-    st.title("⚡ 스피드 초성 퀴즈")
-    st.markdown("30초 안에 최대한 많이 맞혀보세요!")
+    st.title("초성 맞추기 테스트 ")
+    st.markdown("**30초 안에 최대한 많이 맞혀보세요!**")
 
     name = st.text_input("이름을 입력하세요:")
-    if st.button("게임 시작!") and name.strip():
-        st.session_state.name = name.strip()
-        st.session_state.word_list = WORDS.copy()
-        random.shuffle(st.session_state.word_list)
-        st.session_state.current_word, st.session_state.hint = st.session_state.word_list.pop()
-        st.session_state.start_time = time.time()
-        st.session_state.problem_start_time = time.time()
-        st.session_state.score = 0
-        st.session_state.show_hint = False
-        st.session_state.started = True
-        st.rerun()
-    elif st.button("게임 시작!") and not name.strip():
-        st.warning("이름을 입력해주세요.")
 
-# 게임 진행
+    if st.button("게임 시작!"):
+        if not name.strip():
+            st.warning("이름을 입력해주세요.")
+        else:
+            st.session_state.name = name.strip()
+            st.session_state.word_list = WORDS.copy()
+            random.shuffle(st.session_state.word_list)
+            st.session_state.current_word, st.session_state.hint = st.session_state.word_list.pop()
+            st.session_state.start_time = time.time()
+            st.session_state.problem_start_time = time.time()
+            st.session_state.score = 0
+            st.session_state.show_hint = False
+            st.session_state.started = True
+            st.rerun()
+
+# 게임 진행 화면
 elif not st.session_state.game_over:
     st.title("🔥 스피드 퀴즈 중!")
 
@@ -125,11 +126,12 @@ elif not st.session_state.game_over:
         st.session_state.show_hint = False
         st.rerun()
 
-# 게임 종료
+# 게임 종료 화면
 else:
     st.title("🏁 게임 종료!")
-    st.markdown(f"🎯 **{st.session_state.name}** 님의 점수: **{st.session_state.score}점**")
+    st.markdown(f"🎯 **{st.session_state.name}** 님의 점수는 **{st.session_state.score}점**입니다!")
 
+    # 점수 저장
     new_data = pd.DataFrame([{
         "이름": st.session_state.name,
         "점수": st.session_state.score
@@ -144,7 +146,7 @@ else:
     df = df.sort_values(by="점수", ascending=False).reset_index(drop=True)
     df.to_csv(SCORE_FILE, index=False)
 
-    st.markdown("## 🏆 랭킹")
+    st.markdown("## 🏆 전체 랭킹")
     st.dataframe(df.head(10))
 
     if st.button("🔄 다시 하기"):
